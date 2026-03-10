@@ -4,12 +4,13 @@
 
 <div class="container">
     <h2>Section 2: Word Scramble Race</h2>
+    <p style="font-size: 0.9rem; font-weight: normal; color: #666;">How to Play: Unscramble the letters to find the correct word. You have 15 seconds for each word. Try to get as many correct as you can!</p>
     
     <div class="row mb-3">
         <div class="col">
             <div class="alert alert-info d-flex justify-content-between">
                 <span><strong>Score: <span id="score">0</span></strong></span>
-                <span><strong>Word: <span id="wordCount">1</span>/5</strong></span>
+                <span><strong>Word: <span id="wordCount">1</span></strong></span>
                 <span><strong>Time: <span id="timer">15.0</span>s</strong></span>
             </div>
         </div>
@@ -55,58 +56,73 @@
         // Word database - Objects and Countries/Capitals
         const words = [
             // Objects
-            { original: "APPLE", scrambled: "ELPPA" },
-            { original: "TABLE", scrambled: "ELBAT" },
-            { original: "CHAIR", scrambled: "RIAHC" },
-            { original: "BREAD", scrambled: "DAERB" },
-            { original: "WATER", scrambled: "RETAW" },
-            { original: "LIGHT", scrambled: "THGIL" },
-            { original: "PLANT", scrambled: "TNALP" },
-            { original: "RIVER", scrambled: "REVIR" },
-            { original: "STONE", scrambled: "ENOTS" },
-            { original: "CLOUD", scrambled: "DUOLC" },
-            { original: "TRAIN", scrambled: "NIART" },
-            { original: "PLANE", scrambled: "ENALP" },
-            { original: "BRUSH", scrambled: "HSURB" },
-            { original: "CLOCK", scrambled: "KCOLC" },
-            { original: "PAPER", scrambled: "REPAP" },
-            { original: "PENCIL", scrambled: "LICNEP" },
-            { original: "WINDOW", scrambled: "WODNIW" },
-            { original: "MIRROR", scrambled: "RORRIM" },
-            { original: "GARDEN", scrambled: "NEDRAG" },
-            { original: "FLOWER", scrambled: "REWOLF" },
-            { original: "BUTTER", scrambled: "RETTUB" },
-            { original: "CHEESE", scrambled: "ESEEHCS" },
-            { original: "ORANGE", scrambled: "EGNARO" },
-            { original: "BANANA", scrambled: "ANANAB" },
-            { original: "GRAPES", scrambled: "SEPPARG" },
-            { original: "COFFEE", scrambled: "EEFFOC" },
-            { original: "SUGAR", scrambled: "RAGUS" },
-            { original: "CANDLE", scrambled: "ELDNAC" },
-            { original: "PILLOW", scrambled: "WOLLIP" },
-            { original: "BLANKET", scrambled: "TEKNALB" },
+            { original: "APPLE", scrambled: "PAPEL" },
+            { original: "TABLE", scrambled: "EBLAT" },
+            { original: "CHAIR", scrambled: "IHACR" },
+            { original: "BREAD", scrambled: "ABEDR" },
+            { original: "WATER", scrambled: randomizeLetters("WATER") },
+            { original: "LIGHT", scrambled: randomizeLetters("LIGHT") },
+            { original: "PLANT", scrambled: randomizeLetters("PLANT") },
+            { original: "RIVER", scrambled: randomizeLetters("RIVER") },
+            { original: "STONE", scrambled: randomizeLetters("STONE") },
+            { original: "CLOUD", scrambled: randomizeLetters("CLOUD") },
+            { original: "TRAIN", scrambled: randomizeLetters("TRAIN") },
+            { original: "PLANE", scrambled: randomizeLetters("PLANE") },
+            { original: "BRUSH", scrambled: randomizeLetters("BRUSH") },
+            { original: "CLOCK", scrambled: randomizeLetters("CLOCK") },
+            { original: "PAPER", scrambled: randomizeLetters("PAPER") },
+            { original: "PENCIL", scrambled: randomizeLetters("PENCIL") },
+            { original: "WINDOW", scrambled: randomizeLetters("WINDOW") },
+            { original: "MIRROR", scrambled: randomizeLetters("MIRROR") },
+            { original: "GARDEN", scrambled: randomizeLetters("GARDEN") },
+            { original: "FLOWER", scrambled: randomizeLetters("FLOWER") },
+            { original: "BUTTER", scrambled: randomizeLetters("BUTTER") },
+            { original: "CHEESE", scrambled: randomizeLetters("CHEESE") },
+            { original: "ORANGE", scrambled: randomizeLetters("ORANGE") },
+            { original: "BANANA", scrambled: randomizeLetters("BANANA") },
+            { original: "GRAPES", scrambled: randomizeLetters("GRAPES") },
+            { original: "COFFEE", scrambled: randomizeLetters("COFFEE") },
+            { original: "SUGAR", scrambled: randomizeLetters("SUGAR") },
+            { original: "CANDLE", scrambled: randomizeLetters("CANDLE") },
+            { original: "PILLOW", scrambled: randomizeLetters("PILLOW") },
+            { original: "BLANKET", scrambled: randomizeLetters("BLANKET") },
+            { original: "UMBRELLA", scrambled: randomizeLetters("UMBRELLA") },
+            { original: "LANTERN", scrambled: randomizeLetters("LANTERN") },
+            { original: "GUITAR", scrambled: randomizeLetters("GUITAR") },
+            { original: "DRUMS", scrambled: randomizeLetters("DRUMS") },
+            { original: "VIOLIN", scrambled: randomizeLetters("VIOLIN") },
+            { original: "PIANO", scrambled: randomizeLetters("PIANO") },
+            { original: "TRUMPET", scrambled: randomizeLetters("TRUMPET") },
             // Countries/Capitals
-            { original: "INDIA", scrambled: "AIDNI" },
-            { original: "CHINA", scrambled: "ANIHCS" },
-            { original: "JAPAN", scrambled: "NAPAJ" },
-            { original: "SPAIN", scrambled: "NIAPS" },
-            { original: "ITALY", scrambled: "YLATI" },
-            { original: "EGYPT", scrambled: "TPYGE" },
-            { original: "KENYA", scrambled: "AYNEK" },
-            { original: "BRAZIL", scrambled: "LIZARB" },
-            { original: "CHILE", scrambled: "ELIHC" },
-            { original: "PERU", scrambled: "UREP" },
-            { original: "PARIS", scrambled: "SIRAP" },
-            { original: "TOKYO", scrambled: "OYKOT" },
-            { original: "SEOUL", scrambled: "LUOES" },
-            { original: "CAIRO", scrambled: "ORIAC" },
-            { original: "ROME", scrambled: "EMOR" },
-            { original: "MADRID", scrambled: "DIRDAM" },
-            { original: "BERLIN", scrambled: "NILREB" },
-            { original: "LONDON", scrambled: "NODNOL" },
-            { original: "DUBLIN", scrambled: "NILBUD" },
-            { original: "VIENNA", scrambled: "ANNEIV" }
+            { original: "INDIA", scrambled: randomizeLetters("INDIA") },
+            { original: "CHINA", scrambled: randomizeLetters("CHINA") },
+            { original: "JAPAN", scrambled: randomizeLetters("JAPAN") },
+            { original: "SPAIN", scrambled: randomizeLetters("SPAIN") },
+            { original: "ITALY", scrambled: randomizeLetters("ITALY") },
+            { original: "EGYPT", scrambled: randomizeLetters("EGYPT") },
+            { original: "KENYA", scrambled: randomizeLetters("KENYA") },
+            { original: "BRAZIL", scrambled: randomizeLetters("BRAZIL") },
+            { original: "CHILE", scrambled: randomizeLetters("CHILE") },
+            { original: "PERU", scrambled: randomizeLetters("PERU") },
+            { original: "PARIS", scrambled: randomizeLetters("PARIS") },
+            { original: "TOKYO", scrambled: randomizeLetters("TOKYO") },
+            { original: "CAIRO", scrambled: randomizeLetters("CAIRO") },
+            { original: "ROME", scrambled: randomizeLetters("ROME") },
+            { original: "MADRID", scrambled: randomizeLetters("MADRID") },
+            { original: "BERLIN", scrambled: randomizeLetters("BERLIN") },
+            { original: "LONDON", scrambled: randomizeLetters("LONDON") },
+            { original: "VIENNA", scrambled: randomizeLetters("VIENNA") }
         ];
+        
+        // Function to randomize letters
+        function randomizeLetters(word) {
+            const letters = word.split('');
+            for (let i = letters.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [letters[i], letters[j]] = [letters[j], letters[i]];
+            }
+            return letters.join('');
+        }
 
         // Game state
         let gameState = {
@@ -170,7 +186,9 @@
             gameState.currentWordData = gameState.gameWords[gameState.currentWordIndex];
             gameState.wordStartTime = new Date().toISOString();
             
-            document.getElementById('scrambledWord').textContent = gameState.currentWordData.scrambled;
+            // Generate random scrambled version
+            const scrambled = randomizeLetters(gameState.currentWordData.original);
+            document.getElementById('scrambledWord').textContent = scrambled;
             document.getElementById('userInput').value = '';
             document.getElementById('userInput').disabled = false;
             document.getElementById('userInput').focus();
@@ -239,11 +257,7 @@
             document.getElementById('correctWordDisplay').style.display = 'block';
             
             if (isCorrect) {
-                // Calculate WPM-based score
-                const wordLength = gameState.currentWordData.original.length;
-                const wpm = timeTaken > 0 ? (wordLength / 5) / (timeTaken / 60) : 0;
-                const wordScore = Math.round(wpm * 10);
-                
+                const wordScore = 50;
                 gameState.score += wordScore;
                 document.getElementById('score').textContent = gameState.score;
                 
@@ -269,7 +283,7 @@
             
             gameState.wordsCompleted.push({
                 word: gameState.currentWordData.original,
-                scrambled: gameState.currentWordData.scrambled,
+                scrambled: randomizeLetters(gameState.currentWordData.original),
                 userAnswer: document.getElementById('userInput').value.toUpperCase().trim(),
                 isCorrect: isCorrect,
                 timeTaken: timeTaken,
