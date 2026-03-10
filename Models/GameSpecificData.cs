@@ -1,3 +1,5 @@
+using MongoDB.Bson.Serialization.Attributes;
+
 namespace CognitiveOverloadLMS.Models
 {
     public class GameSpecificData
@@ -14,18 +16,22 @@ namespace CognitiveOverloadLMS.Models
         public string UserAnswer { get; set; } = string.Empty;
         public int Attempts { get; set; }
         
-        // Arrow Challenge Data
-        public int ArrowsThrown { get; set; }
-        public int SuccessfulThrows { get; set; }
-        public int FailedThrows { get; set; }
+        // Arrow Challenge Data - Simplified
+        public int Score { get; set; }
+        
+        public int BestScore { get; set; }
+    
         public List<ArrowThrow> ArrowThrows { get; set; } = new();
     }
     
     public class ArrowThrow
     {
-        public DateTime Timestamp { get; set; }
+        public string Timestamp { get; set; } = string.Empty;
+        
         public double Angle { get; set; }
+        
         public bool HitAnotherArrow { get; set; }
+        
         public double RotationSpeed { get; set; }
     }
 }

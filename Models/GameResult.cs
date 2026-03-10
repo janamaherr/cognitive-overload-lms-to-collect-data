@@ -9,15 +9,34 @@ namespace CognitiveOverloadLMS.Models
         [BsonRepresentation(BsonType.ObjectId)]
         public string? Id { get; set; }
         
+        [BsonElement("sessionId")]
         public string SessionId { get; set; } = string.Empty;
-        public string GameType { get; set; } = string.Empty; // "Memory", "WordScramble", "ArrowChallenge"
-        public int SectionNumber { get; set; } // 1, 2, or 3
+        
+        [BsonElement("gameType")]
+        public string GameType { get; set; } = string.Empty;
+        
+        [BsonElement("sectionNumber")]
+        public int SectionNumber { get; set; }
+        
+        [BsonElement("startTime")]
         public DateTime StartTime { get; set; }
+        
+        [BsonElement("endTime")]
         public DateTime EndTime { get; set; }
+        
+        [BsonElement("score")]
         public int Score { get; set; }
+        
+        [BsonElement("totalTimeSeconds")]
         public double TotalTimeSeconds { get; set; }
+        
+        [BsonElement("completed")]
         public bool Completed { get; set; }
+        
+        [BsonElement("behaviorData")]
         public BehaviorData BehaviorData { get; set; } = new();
+        
+        [BsonElement("gameData")]
         public GameSpecificData GameData { get; set; } = new();
     }
 }

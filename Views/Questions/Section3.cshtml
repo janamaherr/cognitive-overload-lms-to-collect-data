@@ -420,10 +420,13 @@
 
         // End game
         function endGame(completed) {
+            console.log('endGame called with completed =', completed);
             gameState.endTime = new Date().toISOString();
+            console.log('endTime set to:', gameState.endTime);
             document.getElementById('shootBtn').disabled = true;
             document.getElementById('playAgainBtn').style.display = 'inline-block';
             
+            console.log('Calling saveGameData...');
             saveGameData(completed);
         }
 
@@ -445,66 +448,103 @@
             startGame();
         }
 
-        // Save game data
-        async function saveGameData(completed) {
-            try {
-                mouseTracker.stopTracking();
-                const mouseData = mouseTracker.getData();
-                const behaviorData = behaviorLogger.endGame();
-                const endTime = gameState.endTime || new Date().toISOString();
-                const totalSeconds = (new Date(endTime) - new Date(gameState.startTime)) / 1000;
-                
-                const gameResult = {
-                    sessionId: gameState.sessionId,
-                    gameType: gameState.gameType,
-                    sectionNumber: gameState.sectionNumber,
-                    startTime: gameState.startTime,
-                    endTime: endTime,
-                    score: gameState.arrowsStuck,
-                    totalTimeSeconds: totalSeconds,
-                    completed: completed && !gameState.gameLost,
-                    
-                    behaviorData: {
-                        mouseMovements: mouseData.movements || [],
-                        typingEvents: behaviorData.typingEvents || [],
-                        headPositions: [],
-                        hesitationPauses: behaviorData.hesitationPauses || [],
-                        averageMouseSpeed: mouseData.averageSpeed || 0,
-                        averageTypingSpeed: 0,
-                        averageHeadMovement: 0
-                    },
-                    
-                    gameData: {
-                        arrowsThrown: gameState.arrowsShot,
-                        successfulThrows: gameState.arrowsStuck,
-                        failedThrows: gameState.failedAttempts,
-                        arrowThrows: gameState.arrowThrows
-                    }
-                };
-                
-                console.log('Saving game data:', gameResult);
-                
-                const response = await fetch('/api/GameData/save', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(gameResult)
-                });
-                
-                const data = await response.json();
-                if (data.success) {
-                    console.log('Game data saved successfully!');
-                    if (gameState.arrowsStuck > gameState.bestScore) {
-                        gameState.bestScore = gameState.arrowsStuck;
-                        localStorage.setItem('twistyArrowBest', gameState.bestScore);
-                        document.getElementById('bestScore').textContent = gameState.bestScore;
-                    }
-                } else {
-                    console.error('Save failed:', data.error);
-                }
-            } catch (error) {
-                console.error('Error saving:', error);
+       // Save game data
+async function saveGameData(completed) {
+    try {
+        console.log('=== SAVE GAME DATA START ===');
+        console.log('SessionId:', gameState.sessionId);
+        
+        // Check if sessionId exists
+        if (!gameState.sessionId) {
+            console.error('❌ ERROR: SessionId is null or empty!');
+            console.error('You must start from the Home page to create a session first.');
+            alert('Error: No session found. Please go back to Home and select Section 3.');
+            return;
+        }
+        
+        mouseTracker.stopTracking();
+        const mouseData = mouseTracker.getData();
+        
+        const behaviorData = behaviorLogger.endGame();
+        
+        // Fix: Ensure all dates in hesitationPauses are proper ISO strings and filter out incomplete pauses
+        if (behaviorData.hesitationPauses) {
+            behaviorData.hesitationPauses = behaviorData.hesitationPauses
+                .filter(pause => pause.endTime != null) // Only include completed pauses
+                .map(pause => ({
+                    ...pause,
+                    startTime: pause.startTime ? new Date(pause.startTime).toISOString() : null,
+                    endTime: pause.endTime ? new Date(pause.endTime).toISOString() : null
+                }));
+        }
+        
+        const endTime = gameState.endTime || new Date().toISOString();
+        const totalSeconds = (new Date(endTime) - new Date(gameState.startTime)) / 1000;
+        
+        // Create the game result object (NOT wrapped!)
+        const gameResult = {
+            sessionId: gameState.sessionId,
+            gameType: gameState.gameType,
+            sectionNumber: gameState.sectionNumber,
+            startTime: gameState.startTime,
+            endTime: endTime,
+            score: gameState.arrowsStuck,
+            totalTimeSeconds: totalSeconds,
+            completed: completed && !gameState.gameLost,
+            
+            behaviorData: {
+                mouseMovements: mouseData.movements || [],
+                typingEvents: behaviorData.typingEvents || [],
+                headPositions: [],
+                hesitationPauses: behaviorData.hesitationPauses || [],
+                averageMouseSpeed: mouseData.averageSpeed || 0,
+                averageTypingSpeed: 0,
+                averageHeadMovement: 0
+            },
+            
+            gameData: {
+                score: gameState.arrowsStuck,
+                bestScore: gameState.bestScore,
+                arrowThrows: gameState.arrowThrows.map(t => ({
+                    timestamp: t.timestamp,
+                    angle: t.angle,
+                    hitAnotherArrow: t.hitAnotherArrow,
+                    rotationSpeed: t.rotationSpeed
+                }))
+            }
+        };
+        
+        console.log('Payload being sent:', JSON.stringify(gameResult));
+        console.log('Calling fetch to /api/GameData/save...');
+        const response = await fetch('/api/GameData/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(gameResult)
+        });
+        
+        console.log('Response status:', response.status);
+        
+        const data = await response.json();
+        console.log('Response data:', data);
+        
+        if (data.success) {
+            console.log('✅ Game data saved successfully! ID:', data.id);
+            if (gameState.arrowsStuck > gameState.bestScore) {
+                gameState.bestScore = gameState.arrowsStuck;
+                localStorage.setItem('twistyArrowBest', gameState.bestScore);
+                document.getElementById('bestScore').textContent = gameState.bestScore;
+            }
+        } else {
+            console.error('❌ Save failed:', data.error || data.title);
+            if (data.errors) {
+                console.error('Validation errors:', JSON.stringify(data.errors, null, 2));
             }
         }
+    } catch (error) {
+        console.error('❌ Error saving:', error);
+        console.error('Error details:', error.message);
+    }
+}
 
         // Event listeners
         document.getElementById('startGameBtn').addEventListener('click', startGame);
