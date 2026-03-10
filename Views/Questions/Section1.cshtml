@@ -315,11 +315,9 @@
                 
                 clearInterval(timerInterval);
                 
-                // Show play again button only (not next game)
+                // Show both play again and next game buttons
                 document.getElementById('playAgainBtn').style.display = 'inline-block';
-                
-                // Save the failed attempt
-                saveGameData(false);
+                document.getElementById('nextGameBtn').style.display = 'inline-block';
             }
             
             // Log behavior data
@@ -333,6 +331,17 @@
             
             // Collect behavior data
             const behaviorData = behaviorLogger.endGame();
+            
+            // Fix: Ensure all dates in hesitationPauses are proper ISO strings and filter out incomplete pauses
+            if (behaviorData.hesitationPauses) {
+                behaviorData.hesitationPauses = behaviorData.hesitationPauses
+                    .filter(pause => pause.endTime != null) // Only include completed pauses
+                    .map(pause => ({
+                        ...pause,
+                        startTime: pause.startTime ? new Date(pause.startTime).toISOString() : null,
+                        endTime: pause.endTime ? new Date(pause.endTime).toISOString() : null
+                    }));
+            }
             
             console.log("Ending game...");
             console.log("Game State:", gameState);
@@ -380,15 +389,6 @@
                 
                 if (data.success) {
                     console.log("Game data saved successfully!");
-                    
-                    // Reset behavior logger for next game
-                    if (!completed) {
-                        // If not completed and playing again, start new tracking
-                        setTimeout(() => {
-                            mouseTracker.startTracking();
-                            behaviorLogger.startGame(gameState.gameType);
-                        }, 100);
-                    }
                 } else {
                     console.error("Failed to save:", data.error);
                 }
