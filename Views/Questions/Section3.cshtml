@@ -1,0 +1,564 @@
+@{
+    ViewData["Title"] = "Twisty Arrow Game";
+}
+
+<div class="container">
+    <h2>Section 3: Twisty Arrow Game</h2>
+    
+    <div class="row mb-3">
+        <div class="col">
+            <div class="alert alert-info d-flex justify-content-between align-items-center">
+                <span><strong>Arrows Stuck: <span id="arrowCount">0</span></strong></span>
+                <span><strong>Best: <span id="bestScore">0</span></strong></span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Feedback Message -->
+    <div id="feedbackMessage" class="alert" style="display: none;"></div>
+    
+    <div class="row">
+        <div class="col-md-8 offset-md-2 text-center">
+            <canvas id="gameCanvas" width="500" height="600" style="border: 2px solid #333; background: #f0f0f0;"></canvas>
+            
+            <div class="mt-4">
+                <button id="startGameBtn" class="btn btn-success btn-lg">Start Game</button>
+                <button id="shootBtn" class="btn btn-primary btn-lg" disabled>Shoot (Space)</button>
+                <button id="playAgainBtn" class="btn btn-warning btn-lg" style="display: none;">Play Again</button>
+            </div>
+            
+            <div class="mt-3">
+                <p class="text-muted"><strong>How to Play:</strong> Click "Shoot" or press Space to shoot arrows into the rotating circle.</p>
+                <p class="text-muted">The number in the center shows how many arrows you've stuck.</p>
+                <p class="text-danger"><strong>Fail Condition:</strong> If your arrow hits an existing arrow → Game Over!</p>
+                <p class="text-success"><strong>Keep shooting arrows and avoid hitting existing ones!</strong></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/behaviorLogger.js"></script>
+    <script src="~/js/mouseSpeed.js"></script>
+    <script>
+        // Game state
+        let gameState = {
+            sessionId: sessionStorage.getItem('sessionId'),
+            gameType: 'Twisty Arrow Game',
+            sectionNumber: 3,
+            startTime: null,
+            endTime: null,
+            arrowsStuck: 0,
+            bestScore: parseInt(localStorage.getItem('twistyArrowBest')) || 0,
+            gameStarted: false,
+            gameCompleted: false,
+            gameLost: false,
+            arrowsShot: 0,
+            failedAttempts: 0,
+            arrowThrows: []
+        };
+
+        // Canvas setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const centerX = canvas.width / 2;
+        const centerY = 280;
+        const circleRadius = 110;
+
+        // Game variables
+        let rotationAngle = 0;
+        const rotationSpeed = 0.02;
+        let arrows = [];
+        let flyingArrow = null;
+        let animationFrame;
+        
+        // Tracking
+        let behaviorLogger;
+        let mouseTracker;
+
+        // Verify session
+        if (!gameState.sessionId) {
+            alert('No session found. Please start from the homepage.');
+            window.location.href = '/';
+        }
+
+        // Update best score
+        document.getElementById('bestScore').textContent = gameState.bestScore;
+
+        // Arrow class
+        // adjust this constant to fine-tune how close arrows can be before colliding
+        const COLLISION_MARGIN = 0.1; // radians (~5.7 degrees), smaller = more precise
+
+        class StuckArrow {
+            constructor(angle,rotationAtTimeOfStick) {
+                this.angle = angle;
+                this.absoluteAngle = (angle + rotationAtTimeOfStick) % (Math.PI * 2);
+                this.relativeAngle = angle % (Math.PI * 2);
+                this.length = 38;
+                this.color = this.getRandomColor();
+                this.headColor = this.darkenColor(this.color);
+            }
+
+            getRandomColor() {
+                const colors = [
+                    '#FF4444', // Red
+                    '#44FF44', // Green
+                    '#4444FF', // Blue
+                    '#FFFF44', // Yellow
+                    '#FF44FF', // Purple
+                    '#44FFFF', // Cyan
+                    '#FF8844', // Orange
+                    '#8844FF'  // Violet
+                ];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+
+            darkenColor(color) {
+                if (color === '#FF4444') return '#CC0000';
+                if (color === '#44FF44') return '#00CC00';
+                if (color === '#4444FF') return '#0000CC';
+                if (color === '#FFFF44') return '#CCCC00';
+                if (color === '#FF44FF') return '#CC00CC';
+                if (color === '#44FFFF') return '#00CCCC';
+                if (color === '#FF8844') return '#CC5500';
+                if (color === '#8844FF') return '#5500CC';
+                return '#666666';
+            }
+
+            draw(ctx, centerX, centerY, radius, rotationAngle) {
+                //const effectiveAngle = this.absoluteAngle;
+                //const effectiveAngle = this.absoluteAngle + rotationAngle;
+                // const effectiveAngle = this.angle + rotationAngle;
+                 //const effectiveAngle = (this.relativeAngle + currentRotation) % (Math.PI * 2);
+                 const effectiveAngle = (this.relativeAngle + rotationAngle) % (Math.PI * 2);
+                // Arrow head position (on the circle)
+                const headX = centerX + radius * Math.cos(effectiveAngle);
+                const headY = centerY + radius * Math.sin(effectiveAngle);
+                
+                // Arrow tail position (inside the circle)
+                const tailX = centerX + (radius - this.length) * Math.cos(effectiveAngle);
+                const tailY = centerY + (radius - this.length) * Math.sin(effectiveAngle);
+                
+                // Draw arrow line
+                ctx.beginPath();
+                ctx.moveTo(tailX, tailY);
+                ctx.lineTo(headX, headY);
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 6;
+                ctx.stroke();
+                
+                // Draw arrow head
+                ctx.save();
+                ctx.translate(headX, headY);
+                ctx.rotate(effectiveAngle);
+                
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(-12, -6);
+                ctx.lineTo(-12, 6);
+                ctx.closePath();
+                ctx.fillStyle = this.headColor;
+                ctx.fill();
+                
+                ctx.restore();
+            }
+
+        collidesWith(newArrowRelativeAngle, currentRotation, margin = COLLISION_MARGIN) {
+        // Calculate current absolute angle of this arrow
+        const thisAbsoluteAngle = (this.relativeAngle + currentRotation) % (Math.PI * 2);
+        
+        // Calculate absolute angle of new arrow (it's hitting NOW at currentRotation)
+        const newAbsoluteAngle = (newArrowRelativeAngle + currentRotation) % (Math.PI * 2);
+        
+        // Compare absolute angles
+        let angleDiff = Math.abs(thisAbsoluteAngle - newAbsoluteAngle);
+        angleDiff = Math.min(angleDiff, Math.PI * 2 - angleDiff);
+        return angleDiff < margin;
+    }
+        }
+
+        // Flying arrow class
+        class FlyingArrow {
+            constructor() {
+                this.x = centerX;
+                this.y = canvas.height - 60;
+                this.speed = 7;
+                this.angle = null;
+                this.active = true;
+                this.trail = [];
+            }
+
+            update() {
+                if (!this.active) return false;
+                
+                // Add to trail
+                this.trail.push({ x: this.x, y: this.y });
+                if (this.trail.length > 5) this.trail.shift();
+                
+                this.y -= this.speed;
+                
+                // Check if hit the circle
+                const dx = this.x - centerX;
+                const dy = this.y - centerY;
+                const distance = Math.sqrt(dx*dx + dy*dy);
+                
+                if (distance <= circleRadius + 3) {
+                    // Hit the circle!
+                    this.active = false;
+                    this.angle = Math.atan2(dy, dx);
+                    return true;
+                }
+                
+                // Check if went past circle (missed)
+                if (this.y < centerY - circleRadius - 40) {
+                    this.active = false;
+                    return false;
+                }
+                
+                return null;
+            }
+
+            draw(ctx) {
+                if (!this.active) return;
+                
+                // Draw trail
+                for (let i = 0; i < this.trail.length; i++) {
+                    const point = this.trail[i];
+                    const alpha = i / this.trail.length * 0.5;
+                    
+                    ctx.save();
+                    ctx.translate(point.x, point.y);
+                    
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 3, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+                    ctx.fill();
+                    
+                    ctx.restore();
+                }
+                
+                // Draw arrow
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                
+                // Draw arrow pointing up
+                ctx.rotate(-Math.PI / 2);
+                
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(20, -6);
+                ctx.lineTo(20, 6);
+                ctx.closePath();
+                ctx.fillStyle = '#000000';
+                ctx.shadowColor = 'rgba(0,0,0,0.3)';
+                ctx.shadowBlur = 5;
+                ctx.fill();
+                
+                ctx.restore();
+            }
+        }
+
+        // Draw the game
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw bow platform
+            ctx.beginPath();
+            ctx.moveTo(centerX - 70, canvas.height - 40);
+            ctx.lineTo(centerX, canvas.height - 20);
+            ctx.lineTo(centerX + 70, canvas.height - 40);
+            ctx.fillStyle = '#8B4513';
+            ctx.fill();
+            
+            // Draw rotating circle
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(rotationAngle);
+            
+            ctx.beginPath();
+            ctx.arc(0, 0, circleRadius, 0, Math.PI * 2);
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            
+            ctx.fillStyle = 'rgba(200, 200, 200, 0.2)';
+            ctx.fill();
+            
+            ctx.restore();
+            
+            // Draw arrows count in center
+            ctx.save();
+            ctx.font = 'bold 48px Arial';
+            ctx.fillStyle = '#333';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(gameState.arrowsStuck, centerX, centerY);
+            ctx.restore();
+            
+            // Draw stuck arrows
+            arrows.forEach(arrow => {
+                arrow.draw(ctx, centerX, centerY, circleRadius, rotationAngle);
+            });
+            
+            // Draw flying arrow
+            if (flyingArrow && flyingArrow.active) {
+                flyingArrow.draw(ctx);
+            }
+            
+            // Update rotation
+            rotationAngle += rotationSpeed;
+            
+            if (gameState.gameStarted && !gameState.gameCompleted) {
+                animationFrame = requestAnimationFrame(draw);
+            }
+        }
+
+        // Shoot arrow
+        function shootArrow() {
+            if (!gameState.gameStarted || gameState.gameCompleted || gameState.gameLost) return;
+            if (flyingArrow && flyingArrow.active) {
+                showFeedback('Wait for arrow to hit!', false);
+                return;
+            }
+            
+            gameState.arrowsShot++;
+            flyingArrow = new FlyingArrow();
+            checkArrowHit();
+        }
+
+        // Check arrow collision
+        function checkArrowHit() {
+            if (!flyingArrow || !flyingArrow.active) return;
+            
+            const result = flyingArrow.update();
+            
+            if (result === true) {
+                // absolute angle where arrow hit the circle
+                const hitAngle = flyingArrow.angle;
+                // convert to circle-relative angle by removing current rotation
+                const relativeAngle = hitAngle - rotationAngle;
+                 const hitAbsoluteAngle = flyingArrow.angle;
+                let collision = false;
+                for (let arrow of arrows) {
+                    if (arrow.collidesWith(relativeAngle, rotationAngle)) {
+                        collision = true;
+                        break;
+                    }
+                }
+                
+                gameState.arrowThrows.push({
+                    timestamp: new Date().toISOString(),
+                    angle: relativeAngle,
+                    hitAnotherArrow: collision,
+                    rotationSpeed: rotationSpeed
+                });
+                
+                console.log('Arrow hit (abs)', hitAngle, 'rel', relativeAngle, 'collision?', collision);
+                
+                if (collision) {
+                    gameState.failedAttempts++;
+                    gameState.gameLost = true;
+                    gameState.gameCompleted = true;
+                    showFeedback('💥 GAME OVER! Hit another arrow!', false);
+                    endGame(false);
+                } else {
+                    gameState.arrowsStuck++;
+                    arrows.push(new StuckArrow(relativeAngle, rotationAngle));
+                    console.log('Stuck arrows array now', arrows.map(a=>a.angle));
+                    document.getElementById('arrowCount').textContent = gameState.arrowsStuck;
+                    showFeedback('✓ Arrow #' + gameState.arrowsStuck + ' stuck!', true);
+                    flyingArrow = null;
+                    
+                }
+            } else if (result === false) {
+                gameState.failedAttempts++;
+                gameState.arrowThrows.push({
+                    timestamp: new Date().toISOString(),
+                    angle: null,
+                    hitAnotherArrow: false,
+                    rotationSpeed: rotationSpeed
+                });
+                showFeedback('Missed!', false);
+                flyingArrow = null;
+            } else {
+                requestAnimationFrame(checkArrowHit);
+            }
+        }
+
+        // Start game
+        function startGame() {
+            if (!behaviorLogger || !mouseTracker) {
+                behaviorLogger = new BehaviorLogger(gameState.sessionId, gameState.sectionNumber);
+                mouseTracker = new MouseSpeedTracker();
+            }
+            
+            gameState.startTime = new Date().toISOString();
+            gameState.gameStarted = true;
+            gameState.gameCompleted = false;
+            gameState.gameLost = false;
+            gameState.arrowsShot = 0;
+            gameState.arrowsStuck = 0;
+            gameState.failedAttempts = 0;
+            gameState.arrowThrows = [];
+            
+            arrows = [];
+            rotationAngle = 0;
+            
+            document.getElementById('arrowCount').textContent = '0';
+            document.getElementById('startGameBtn').style.display = 'none';
+            document.getElementById('shootBtn').disabled = false;
+            document.getElementById('playAgainBtn').style.display = 'none';
+            
+            mouseTracker.startTracking();
+            behaviorLogger.startGame(gameState.gameType);
+            
+            if (animationFrame) cancelAnimationFrame(animationFrame);
+            draw();
+            
+            console.log('Game started');
+        }
+
+        // End game
+        function endGame(completed) {
+            gameState.endTime = new Date().toISOString();
+            document.getElementById('shootBtn').disabled = true;
+            document.getElementById('playAgainBtn').style.display = 'inline-block';
+            
+            saveGameData(completed);
+        }
+
+        // Show feedback
+        function showFeedback(message, isSuccess) {
+            const feedback = document.getElementById('feedbackMessage');
+            feedback.textContent = message;
+            feedback.className = isSuccess ? 'alert alert-success' : 'alert alert-danger';
+            feedback.style.display = 'block';
+            
+            setTimeout(() => {
+                feedback.style.display = 'none';
+            }, 1500);
+        }
+
+        // Play again
+        function playAgain() {
+            gameState.arrowsStuck = 0;
+            startGame();
+        }
+
+        // Save game data
+        async function saveGameData(completed) {
+            try {
+                mouseTracker.stopTracking();
+                const mouseData = mouseTracker.getData();
+                const behaviorData = behaviorLogger.endGame();
+                const endTime = gameState.endTime || new Date().toISOString();
+                const totalSeconds = (new Date(endTime) - new Date(gameState.startTime)) / 1000;
+                
+                const gameResult = {
+                    sessionId: gameState.sessionId,
+                    gameType: gameState.gameType,
+                    sectionNumber: gameState.sectionNumber,
+                    startTime: gameState.startTime,
+                    endTime: endTime,
+                    score: gameState.arrowsStuck,
+                    totalTimeSeconds: totalSeconds,
+                    completed: completed && !gameState.gameLost,
+                    
+                    behaviorData: {
+                        mouseMovements: mouseData.movements || [],
+                        typingEvents: behaviorData.typingEvents || [],
+                        headPositions: [],
+                        hesitationPauses: behaviorData.hesitationPauses || [],
+                        averageMouseSpeed: mouseData.averageSpeed || 0,
+                        averageTypingSpeed: 0,
+                        averageHeadMovement: 0
+                    },
+                    
+                    gameData: {
+                        arrowsThrown: gameState.arrowsShot,
+                        successfulThrows: gameState.arrowsStuck,
+                        failedThrows: gameState.failedAttempts,
+                        arrowThrows: gameState.arrowThrows
+                    }
+                };
+                
+                console.log('Saving game data:', gameResult);
+                
+                const response = await fetch('/api/GameData/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(gameResult)
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    console.log('Game data saved successfully!');
+                    if (gameState.arrowsStuck > gameState.bestScore) {
+                        gameState.bestScore = gameState.arrowsStuck;
+                        localStorage.setItem('twistyArrowBest', gameState.bestScore);
+                        document.getElementById('bestScore').textContent = gameState.bestScore;
+                    }
+                } else {
+                    console.error('Save failed:', data.error);
+                }
+            } catch (error) {
+                console.error('Error saving:', error);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('startGameBtn').addEventListener('click', startGame);
+        document.getElementById('shootBtn').addEventListener('click', shootArrow);
+        document.getElementById('playAgainBtn').addEventListener('click', playAgain);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !document.getElementById('shootBtn').disabled) {
+                e.preventDefault();
+                shootArrow();
+            }
+        });
+
+        window.addEventListener('beforeunload', () => {
+            if (animationFrame) cancelAnimationFrame(animationFrame);
+        });
+
+        console.log('Twisty Arrow Game initialized with session:', gameState.sessionId);
+    </script>
+}
+
+<style>
+    #gameCanvas {
+        display: block;
+        margin: 0 auto;
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        cursor: crosshair;
+    }
+    
+    #feedbackMessage {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+        min-width: 300px;
+        text-align: center;
+        animation: slideDown 0.3s ease;
+    }
+    
+    @@keyframes slideDown {
+        from {
+            top: -50px;
+            opacity: 0;
+        }
+        to {
+            top: 20px;
+            opacity: 1;
+        }
+    }
+    
+    .btn-lg {
+        margin: 0 5px;
+        min-width: 150px;
+    }
+</style>

@@ -1,0 +1,104 @@
+@{
+    ViewData["Title"] = "Session Results";
+}
+
+<div class="container">
+    <h2>Your Session Results</h2>
+    
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5>Session Information</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Session ID:</strong> <span id="sessionId"></span></p>
+                    <p><strong>User Name:</strong> <span id="userName"></span></p>
+                    <p><strong>Start Time:</strong> <span id="startTime"></span></p>
+                    <p><strong>Games Played:</strong> <span id="gamesPlayed"></span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5>Game Results</h5>
+                </div>
+                <div class="card-body">
+                    <div id="gamesList">
+                        <p>Loading games...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <button id="refreshBtn" class="btn btn-primary">Refresh Data</button>
+            <button id="backToGamesBtn" class="btn btn-secondary">Back to Games</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const sessionId = sessionStorage.getItem('sessionId');
+        
+        if (!sessionId) {
+            window.location.href = '/';
+        }
+        
+        document.getElementById('sessionId').textContent = sessionId;
+        
+        async function loadSessionData() {
+            try {
+                const response = await fetch(`/api/GameData/session/${sessionId}/summary`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('userName').textContent = data.userName;
+                    document.getElementById('startTime').textContent = new Date(data.startTime).toLocaleString();
+                    document.getElementById('gamesPlayed').textContent = data.gamesPlayed;
+                    
+                    const gamesList = document.getElementById('gamesList');
+                    
+                    if (data.games && data.games.length > 0) {
+                        let html = '<div class="table-responsive"><table class="table table-striped">';
+                        html += '<thead><tr><th>Game</th><th>Score</th><th>Time (s)</th><th>Completed</th><th>Date</th></tr></thead><tbody>';
+                        
+                        data.games.forEach(game => {
+                            html += `<tr>
+                                <td>${game.gameType}</td>
+                                <td>${game.score}</td>
+                                <td>${game.totalTimeSeconds.toFixed(1)}</td>
+                                <td>${game.completed ? '✅' : '❌'}</td>
+                                <td>${new Date(game.startTime).toLocaleString()}</td>
+                            </tr>`;
+                        });
+                        
+                        html += '</tbody></table></div>';
+                        gamesList.innerHTML = html;
+                    } else {
+                        gamesList.innerHTML = '<div class="alert alert-warning">No games played yet in this session.</div>';
+                    }
+                } else {
+                    gamesList.innerHTML = `<div class="alert alert-danger">Error: ${data.error}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('gamesList').innerHTML = `<div class="alert alert-danger">Error loading data: ${error.message}</div>`;
+            }
+        }
+        
+        loadSessionData();
+        
+        document.getElementById('refreshBtn').addEventListener('click', loadSessionData);
+        
+        document.getElementById('backToGamesBtn').addEventListener('click', function() {
+            window.location.href = '/Questions/Section1';
+        });
+    </script>
+}

@@ -1,0 +1,402 @@
+@{
+    ViewData["Title"] = "Word Scramble Race";
+}
+
+<div class="container">
+    <h2>Section 2: Word Scramble Race</h2>
+    
+    <div class="row mb-3">
+        <div class="col">
+            <div class="alert alert-info d-flex justify-content-between">
+                <span><strong>Score: <span id="score">0</span></strong></span>
+                <span><strong>Word: <span id="wordCount">1</span>/5</strong></span>
+                <span><strong>Time: <span id="timer">15.0</span>s</strong></span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Feedback Message -->
+    <div id="feedbackMessage" class="alert" style="display: none;"></div>
+    
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h1 id="scrambledWord" class="display-1 fw-bold mb-4" style="letter-spacing: 5px;">LOADING</h1>
+                    
+                    <div class="mb-3">
+                        <input type="text" id="userInput" class="form-control form-control-lg text-center" 
+                               placeholder="Type your answer here..." autocomplete="off" disabled>
+                    </div>
+                    
+                    <div id="answerFeedback" class="mb-3" style="min-height: 30px;"></div>
+                    
+                    <div class="mt-4">
+                        <button id="submitBtn" class="btn btn-success btn-lg" disabled>Submit Answer</button>
+                        <button id="nextBtn" class="btn btn-primary btn-lg" style="display: none;">Next Word →</button>
+                        <button id="playAgainBtn" class="btn btn-warning btn-lg" style="display: none;">Play Again</button>
+                        <button id="nextGameBtn" class="btn btn-info btn-lg" style="display: none;">Next Game →</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Show correct word when time's up or after answer -->
+            <div id="correctWordDisplay" class="alert alert-info mt-3 text-center" style="display: none;">
+                The correct word was: <strong id="correctWord"></strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/behaviorLogger.js"></script>
+    <script src="~/js/mouseSpeed.js"></script>
+    <script>
+        // Word database
+        const words = [
+            { original: "COMPUTER", scrambled: "REUPMTOC" },
+            { original: "KEYBOARD", scrambled: "YOBDRKEA" },
+            { original: "MONITOR", scrambled: "TORINOM" },
+            { original: "PROGRAM", scrambled: "RAMPORG" },
+            { original: "DEVELOP", scrambled: "VELOPED" },
+            { original: "JAVASCRIPT", scrambled: "TIVASCRJAP" },
+            { original: "PYTHON", scrambled: "THONPY" },
+            { original: "DATABASE", scrambled: "BASEDAAT" },
+            { original: "NETWORK", scrambled: "WORKNET" },
+            { original: "BROWSER", scrambled: "ROWSBER" },
+            { original: "FUNCTION", scrambled: "TIONFUNC" },
+            { original: "VARIABLE", scrambled: "ABLEVARI" },
+            { original: "ALGORITHM", scrambled: "RITHMALGO" }
+        ];
+
+        // Game state
+        let gameState = {
+            sessionId: sessionStorage.getItem('sessionId'),
+            gameType: 'Word Scramble Race',
+            sectionNumber: 2,
+            startTime: null,
+            endTime: null,
+            score: 0,
+            currentWordIndex: 0,
+            totalWords: 5,
+            gameWords: [],
+            wordStartTime: null,
+            wordEndTime: null,
+            typingEvents: [],
+            gameStarted: false,
+            gameCompleted: false,
+            currentWordData: null,
+            wordsCompleted: []
+        };
+
+        // Initialize tracking
+        const behaviorLogger = new BehaviorLogger(gameState.sessionId, gameState.sectionNumber);
+        const mouseTracker = new MouseSpeedTracker();
+
+        // Timer variables
+        let timerInterval;
+        let timeLeft = 15;
+
+        // Verify session
+        if (!gameState.sessionId) {
+            alert('No session found. Please start from the homepage.');
+            window.location.href = '/';
+        }
+
+        // Start game
+        document.addEventListener('DOMContentLoaded', function() {
+            startNewGame();
+        });
+
+        function startNewGame() {
+            // Select random words
+            gameState.gameWords = [...words].sort(() => Math.random() - 0.5).slice(0, gameState.totalWords);
+            gameState.currentWordIndex = 0;
+            gameState.score = 0;
+            gameState.wordsCompleted = [];
+            gameState.startTime = new Date().toISOString();
+            gameState.gameStarted = true;
+            
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('wordCount').textContent = '1/' + gameState.totalWords;
+            
+            // Start tracking
+            mouseTracker.startTracking();
+            behaviorLogger.startGame(gameState.gameType);
+            
+            loadWord();
+        }
+
+        function loadWord() {
+            gameState.currentWordData = gameState.gameWords[gameState.currentWordIndex];
+            gameState.wordStartTime = new Date().toISOString();
+            
+            document.getElementById('scrambledWord').textContent = gameState.currentWordData.scrambled;
+            document.getElementById('userInput').value = '';
+            document.getElementById('userInput').disabled = false;
+            document.getElementById('userInput').focus();
+            document.getElementById('answerFeedback').innerHTML = '';
+            document.getElementById('correctWordDisplay').style.display = 'none';
+            document.getElementById('submitBtn').disabled = false;
+            document.getElementById('submitBtn').style.display = 'inline-block';
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('playAgainBtn').style.display = 'none';
+            document.getElementById('nextGameBtn').style.display = 'none';
+            
+            // Reset timer
+            timeLeft = 15;
+            updateTimerDisplay();
+            
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft -= 0.1;
+                updateTimerDisplay();
+                
+                if (timeLeft <= 0) {
+                    timeLeft = 0;
+                    updateTimerDisplay();
+                    handleTimeout();
+                }
+            }, 100);
+        }
+
+        function updateTimerDisplay() {
+            document.getElementById('timer').textContent = timeLeft.toFixed(1);
+        }
+
+        function handleTimeout() {
+            clearInterval(timerInterval);
+            document.getElementById('userInput').disabled = true;
+            document.getElementById('submitBtn').disabled = true;
+            
+            // Show correct word
+            document.getElementById('correctWord').textContent = gameState.currentWordData.original;
+            document.getElementById('correctWordDisplay').style.display = 'block';
+            
+            // Record wrong answer
+            recordWordResult(false, 15);
+            
+            document.getElementById('answerFeedback').innerHTML = '<span class="text-danger fw-bold">⏰ TIME\'S UP!</span>';
+            
+            // Show appropriate button
+            if (gameState.currentWordIndex >= gameState.totalWords - 1) {
+                document.getElementById('nextGameBtn').style.display = 'inline-block';
+            } else {
+                document.getElementById('nextBtn').style.display = 'inline-block';
+            }
+        }
+
+        function checkAnswer() {
+            const userInput = document.getElementById('userInput').value.toUpperCase().trim();
+            const isCorrect = (userInput === gameState.currentWordData.original);
+            const timeTaken = 15 - timeLeft;
+            
+            clearInterval(timerInterval);
+            document.getElementById('userInput').disabled = true;
+            document.getElementById('submitBtn').disabled = true;
+            
+            // Show correct word
+            document.getElementById('correctWord').textContent = gameState.currentWordData.original;
+            document.getElementById('correctWordDisplay').style.display = 'block';
+            
+            if (isCorrect) {
+                // Calculate WPM-based score
+                const wordLength = gameState.currentWordData.original.length;
+                const wpm = timeTaken > 0 ? (wordLength / 5) / (timeTaken / 60) : 0;
+                const wordScore = Math.round(wpm * 10);
+                
+                gameState.score += wordScore;
+                document.getElementById('score').textContent = gameState.score;
+                
+                document.getElementById('answerFeedback').innerHTML = '<span class="text-success fw-bold">✅ CORRECT! +' + wordScore + ' points</span>';
+            } else {
+                document.getElementById('answerFeedback').innerHTML = '<span class="text-danger fw-bold">❌ INCORRECT!</span>';
+            }
+            
+            // Record result
+            recordWordResult(isCorrect, timeTaken);
+            
+            // Show appropriate button
+            if (gameState.currentWordIndex >= gameState.totalWords - 1) {
+                document.getElementById('nextGameBtn').style.display = 'inline-block';
+            } else {
+                document.getElementById('nextBtn').style.display = 'inline-block';
+            }
+        }
+
+        function recordWordResult(isCorrect, timeTaken) {
+            const wpm = timeTaken > 0 ? 
+                (gameState.currentWordData.original.length / 5) / (timeTaken / 60) : 0;
+            
+            gameState.wordsCompleted.push({
+                word: gameState.currentWordData.original,
+                scrambled: gameState.currentWordData.scrambled,
+                userAnswer: document.getElementById('userInput').value.toUpperCase().trim(),
+                isCorrect: isCorrect,
+                timeTaken: timeTaken,
+                wpm: wpm,
+                startTime: gameState.wordStartTime,
+                endTime: new Date().toISOString()
+            });
+        }
+
+        function nextWord() {
+            gameState.currentWordIndex++;
+            document.getElementById('wordCount').textContent = (gameState.currentWordIndex + 1) + '/' + gameState.totalWords;
+            loadWord();
+        }
+
+        function playAgain() {
+            // Save current game data first
+            saveGameData(false).then(() => {
+                startNewGame();
+            });
+        }
+
+        function goToNextGame() {
+            // Save final game data
+            saveGameData(true).then(() => {
+                window.location.href = '/Questions/Section3';
+            });
+        }
+
+        async function saveGameData(completed) {
+            // Stop tracking
+            mouseTracker.stopTracking();
+            const mouseData = mouseTracker.getData();
+            
+            // Collect behavior data
+            const behaviorData = behaviorLogger.endGame();
+            
+            // Calculate averages
+            const avgWPM = gameState.wordsCompleted.reduce((sum, w) => sum + w.wpm, 0) / gameState.wordsCompleted.length;
+            const correctCount = gameState.wordsCompleted.filter(w => w.isCorrect).length;
+            
+            // Prepare game result
+            const gameResult = {
+                sessionId: gameState.sessionId,
+                gameType: "Word Scramble Race",
+                sectionNumber: 2,
+                startTime: gameState.startTime,
+                endTime: new Date().toISOString(),
+                score: gameState.score,
+                totalTimeSeconds: (new Date() - new Date(gameState.startTime)) / 1000,
+                completed: completed,
+                
+                behaviorData: {
+                    mouseMovements: mouseData.movements || [],
+                    typingEvents: behaviorData.typingEvents || [],
+                    headPositions: [],
+                    hesitationPauses: behaviorData.hesitationPauses || [],
+                    averageMouseSpeed: mouseData.averageSpeed || 0,
+                    averageTypingSpeed: avgWPM,
+                    averageHeadMovement: 0
+                },
+                
+                gameData: {
+                    wordsCompleted: gameState.wordsCompleted,
+                    correctCount: correctCount,
+                    totalWords: gameState.totalWords,
+                    averageWPM: avgWPM,
+                    accuracy: (correctCount / gameState.totalWords) * 100
+                }
+            };
+            
+            console.log("Saving game data:", gameResult);
+            
+            try {
+                const response = await fetch('/api/GameData/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(gameResult)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    console.log("Game data saved!");
+                    showGlobalFeedback('Game saved!', true);
+                } else {
+                    console.error("Save failed:", data.error);
+                }
+            } catch (error) {
+                console.error("Error saving:", error);
+            }
+        }
+
+        function showGlobalFeedback(message, isSuccess) {
+            const feedback = document.getElementById('feedbackMessage');
+            feedback.textContent = message;
+            feedback.className = isSuccess ? 'alert alert-success' : 'alert alert-danger';
+            feedback.style.display = 'block';
+            
+            setTimeout(() => {
+                feedback.style.display = 'none';
+            }, 2000);
+        }
+
+        // Event listeners
+        document.getElementById('submitBtn').addEventListener('click', checkAnswer);
+        document.getElementById('nextBtn').addEventListener('click', nextWord);
+        document.getElementById('playAgainBtn').addEventListener('click', playAgain);
+        document.getElementById('nextGameBtn').addEventListener('click', goToNextGame);
+        
+        // Enter key to submit
+        document.getElementById('userInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !document.getElementById('submitBtn').disabled) {
+                checkAnswer();
+            }
+        });
+
+        // Typing speed tracking
+        let lastKeyTime = Date.now();
+        document.getElementById('userInput').addEventListener('keydown', (e) => {
+            const currentTime = Date.now();
+            const delay = currentTime - lastKeyTime;
+            
+            if (behaviorLogger.typingEvents) {
+                behaviorLogger.typingEvents.push({
+                    timestamp: new Date().toISOString(),
+                    key: e.key,
+                    delaySinceLastKeyMs: delay,
+                    speed: delay > 0 ? 60000 / delay : 0
+                });
+            }
+            
+            lastKeyTime = currentTime;
+        });
+
+        console.log("Word Scramble game initialized with session:", gameState.sessionId);
+    </script>
+}
+
+<style>
+    .display-1 {
+        font-size: 5rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .form-control-lg {
+        font-size: 1.5rem;
+        padding: 1rem;
+    }
+    
+    #feedbackMessage {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+        min-width: 300px;
+        text-align: center;
+    }
+    
+    .alert-info {
+        background-color: #e7f3ff;
+        border-color: #b6d4fe;
+        color: #084298;
+    }
+</style>

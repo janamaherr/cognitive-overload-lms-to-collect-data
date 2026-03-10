@@ -120,10 +120,7 @@ C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\obj\Debug\
 C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\obj\Debug\net9.0\scopedcss\projectbundle\CognitiveOverloadLMS.bundle.scp.css
 C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\obj\Debug\net9.0\compressed\xv4ekbtirv-b9sayid5wm.gz
 C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\obj\Debug\net9.0\compressed\c7pc8iiqjj-61n19gt1b8.gz
-C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\obj\Debug\net9.0\compressed\rjdrfk9bvb-begtwa7yev.gz
-C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\obj\Debug\net9.0\compressed\kpn8f59707-rf3pvgr9t1.gz
 C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\obj\Debug\net9.0\compressed\oj70h9lai9-xtxxf3hu2r.gz
-C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\obj\Debug\net9.0\compressed\k9ectpnm4y-kejnrizk7j.gz
 C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\obj\Debug\net9.0\compressed\x79cf3dn0b-t1cqhe9u97.gz
 C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\obj\Debug\net9.0\compressed\a2lnpznx57-c2jlpeoesf.gz
 C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\obj\Debug\net9.0\compressed\dot7kmgyzb-sejl45xvog.gz
@@ -194,3 +191,14 @@ C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\obj\Debug\
 C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\obj\Debug\net9.0\CognitiveOverloadLMS.pdb
 C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\obj\Debug\net9.0\CognitiveOverloadLMS.genruntimeconfig.cache
 C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\obj\Debug\net9.0\ref\CognitiveOverloadLMS.dll
+C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\bin\Debug\net9.0\DnsClient.dll
+C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\bin\Debug\net9.0\MongoDB.Bson.dll
+C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\bin\Debug\net9.0\MongoDB.Driver.dll
+C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\bin\Debug\net9.0\SharpCompress.dll
+C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\bin\Debug\net9.0\Snappier.dll
+C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\bin\Debug\net9.0\ZstdSharp.dll
+C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\obj\Debug\net9.0\CognitiveOverloadLMS.csproj.AssemblyReference.cache
+C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\obj\Debug\net9.0\compressed\k9ectpnm4y-tgy4vjz19h.gz
+C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\obj\Debug\net9.0\Cognitiv.6B14B3E8.Up2Date
+C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\obj\Debug\net9.0\compressed\rjdrfk9bvb-iogt28vz8u.gz
+C:\Users\dell\Documents\GitHub\cognitive-overload-lms-to-collect-data\obj\Debug\net9.0\compressed\kpn8f59707-tq417c1h4p.gz

@@ -1,31 +1,48 @@
-using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using CognitiveOverloadLMS.Models;
+using CognitiveOverloadLMS.Services;
+using MongoDB.Driver;
 
-namespace CognitiveOverloadLMS.Controllers;
-
-public class HomeController : Controller
+namespace CognitiveOverloadLMS.Controllers
 {
-    private readonly ILogger<HomeController> _logger;
-
-    public HomeController(ILogger<HomeController> logger)
+    public class HomeController : Controller
     {
-        _logger = logger;
-    }
+        private readonly IMongoCollection<UserSession> _sessions;
 
-    public IActionResult Index()
-    {
-        return View();
-    }
+        public HomeController(MongoDBService mongoDBService)
+        {
+            _sessions = mongoDBService.GetCollection<UserSession>("UserSessions");
+        }
 
-    public IActionResult Privacy()
-    {
-        return View();
-    }
+        public IActionResult Index()
+        {
+            return View();
+        }
 
-    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-    public IActionResult Error()
-    {
-        return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        [HttpPost]
+        public async Task<IActionResult> StartSession([FromBody] string userName)
+        {
+            try
+            {
+                var session = new UserSession
+                {
+                    UserName = userName,
+                    StartTime = DateTime.UtcNow,
+                    Games = new List<GameResult>()
+                };
+
+                await _sessions.InsertOneAsync(session);
+                
+                return Ok(new { sessionId = session.Id, success = true });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, error = ex.Message });
+            }
+        }
+        public IActionResult Results()
+{
+    return View();
+}
     }
 }
