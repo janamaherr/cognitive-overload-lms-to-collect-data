@@ -38,5 +38,6 @@ namespace CognitiveOverloadLMS.Models
         
         [BsonElement("gameData")]
         public GameSpecificData GameData { get; set; } = new();
+        public Boolean Overloaded { get; set; }
     }
 }
