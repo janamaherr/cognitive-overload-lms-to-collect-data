@@ -52,21 +52,60 @@
     <script src="~/js/behaviorLogger.js"></script>
     <script src="~/js/mouseSpeed.js"></script>
     <script>
-        // Word database
+        // Word database - Objects and Countries/Capitals
         const words = [
-            { original: "COMPUTER", scrambled: "REUPMTOC" },
-            { original: "KEYBOARD", scrambled: "YOBDRKEA" },
-            { original: "MONITOR", scrambled: "TORINOM" },
-            { original: "PROGRAM", scrambled: "RAMPORG" },
-            { original: "DEVELOP", scrambled: "VELOPED" },
-            { original: "JAVASCRIPT", scrambled: "TIVASCRJAP" },
-            { original: "PYTHON", scrambled: "THONPY" },
-            { original: "DATABASE", scrambled: "BASEDAAT" },
-            { original: "NETWORK", scrambled: "WORKNET" },
-            { original: "BROWSER", scrambled: "ROWSBER" },
-            { original: "FUNCTION", scrambled: "TIONFUNC" },
-            { original: "VARIABLE", scrambled: "ABLEVARI" },
-            { original: "ALGORITHM", scrambled: "RITHMALGO" }
+            // Objects
+            { original: "APPLE", scrambled: "ELPPA" },
+            { original: "TABLE", scrambled: "ELBAT" },
+            { original: "CHAIR", scrambled: "RIAHC" },
+            { original: "BREAD", scrambled: "DAERB" },
+            { original: "WATER", scrambled: "RETAW" },
+            { original: "LIGHT", scrambled: "THGIL" },
+            { original: "PLANT", scrambled: "TNALP" },
+            { original: "RIVER", scrambled: "REVIR" },
+            { original: "STONE", scrambled: "ENOTS" },
+            { original: "CLOUD", scrambled: "DUOLC" },
+            { original: "TRAIN", scrambled: "NIART" },
+            { original: "PLANE", scrambled: "ENALP" },
+            { original: "BRUSH", scrambled: "HSURB" },
+            { original: "CLOCK", scrambled: "KCOLC" },
+            { original: "PAPER", scrambled: "REPAP" },
+            { original: "PENCIL", scrambled: "LICNEP" },
+            { original: "WINDOW", scrambled: "WODNIW" },
+            { original: "MIRROR", scrambled: "RORRIM" },
+            { original: "GARDEN", scrambled: "NEDRAG" },
+            { original: "FLOWER", scrambled: "REWOLF" },
+            { original: "BUTTER", scrambled: "RETTUB" },
+            { original: "CHEESE", scrambled: "ESEEHCS" },
+            { original: "ORANGE", scrambled: "EGNARO" },
+            { original: "BANANA", scrambled: "ANANAB" },
+            { original: "GRAPES", scrambled: "SEPPARG" },
+            { original: "COFFEE", scrambled: "EEFFOC" },
+            { original: "SUGAR", scrambled: "RAGUS" },
+            { original: "CANDLE", scrambled: "ELDNAC" },
+            { original: "PILLOW", scrambled: "WOLLIP" },
+            { original: "BLANKET", scrambled: "TEKNALB" },
+            // Countries/Capitals
+            { original: "INDIA", scrambled: "AIDNI" },
+            { original: "CHINA", scrambled: "ANIHCS" },
+            { original: "JAPAN", scrambled: "NAPAJ" },
+            { original: "SPAIN", scrambled: "NIAPS" },
+            { original: "ITALY", scrambled: "YLATI" },
+            { original: "EGYPT", scrambled: "TPYGE" },
+            { original: "KENYA", scrambled: "AYNEK" },
+            { original: "BRAZIL", scrambled: "LIZARB" },
+            { original: "CHILE", scrambled: "ELIHC" },
+            { original: "PERU", scrambled: "UREP" },
+            { original: "PARIS", scrambled: "SIRAP" },
+            { original: "TOKYO", scrambled: "OYKOT" },
+            { original: "SEOUL", scrambled: "LUOES" },
+            { original: "CAIRO", scrambled: "ORIAC" },
+            { original: "ROME", scrambled: "EMOR" },
+            { original: "MADRID", scrambled: "DIRDAM" },
+            { original: "BERLIN", scrambled: "NILREB" },
+            { original: "LONDON", scrambled: "NODNOL" },
+            { original: "DUBLIN", scrambled: "NILBUD" },
+            { original: "VIENNA", scrambled: "ANNEIV" }
         ];
 
         // Game state
@@ -267,6 +306,17 @@
             
             // Collect behavior data
             const behaviorData = behaviorLogger.endGame();
+            
+            // Fix: Ensure all dates in hesitationPauses are proper ISO strings and filter out incomplete pauses
+            if (behaviorData.hesitationPauses) {
+                behaviorData.hesitationPauses = behaviorData.hesitationPauses
+                    .filter(pause => pause.endTime != null) // Only include completed pauses
+                    .map(pause => ({
+                        ...pause,
+                        startTime: pause.startTime ? new Date(pause.startTime).toISOString() : null,
+                        endTime: pause.endTime ? new Date(pause.endTime).toISOString() : null
+                    }));
+            }
             
             // Calculate averages
             const avgWPM = gameState.wordsCompleted.reduce((sum, w) => sum + w.wpm, 0) / gameState.wordsCompleted.length;
